@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Tasación #{{ t.id }} · LUMEN{% endblock %}
+{% block content %}
+
+<div class="d-flex align-items-center mb-4">
+  <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-outline-secondary me-3">
+    <i class="fa fa-arrow-left"></i>
+  </a>
+  <h4 class="mb-0" style="color:#1A3C6E; font-weight:700;">
+    Tasación — {{ t.tipo_propiedad or 'Propiedad' }}
+    {% if t.direccion %}<small class="text-muted fw-normal"> · {{ t.direccion }}</small>{% endif %}
+  </h4>
+  <div class="ms-auto d-flex gap-2">
+    <a href="{{ url_for('editar_tasacion', tid=t.id) }}" class="btn btn-outline-secondary btn-sm">
+      <i class="fa fa-edit me-1"></i>Editar
+    </a>
+    <a href="{{ url_for('generar_pdf', tid=t.id) }}" class="btn btn-dorado btn-sm">
+      <i class="fa fa-file-pdf me-1"></i>Descargar PDF
+    </a>
+  </div>
+</div>
+
+<!-- Resultado principal -->
+{% if t.resultado and t.resultado.valor_medio %}
+{% set r = t.resultado %}
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card text-center py-3" style="background:#2563AB; color:white; border-radius:12px;">
+      <div style="font-size:0.8rem; opacity:0.8;">VALOR MÍNIMO</div>
+      <div style="font-size:1.6rem; font-weight:800;">USD {{ "{:,.0f}".format(r.valor_minimo).replace(",",".") }}</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card text-center py-3" style="background:#1A3C6E; color:white; border-radius:12px;">
+      <div style="font-size:0.85rem; opacity:0.8;">VALOR ESTIMADO</div>
+      <div style="font-size:2rem; font-weight:800; color:#C8A84B;">USD {{ "{:,.0f}".format(r.valor_medio).replace(",",".") }}</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card text-center py-3" style="background:#2563AB; color:white; border-radius:12px;">
+      <div style="font-size:0.8rem; opacity:0.8;">VALOR MÁXIMO</div>
+      <div style="font-size:1.6rem; font-weight:800;">USD {{ "{:,.0f}".format(r.valor_maximo).replace(",",".") }}</div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="row g-4">
+  <!-- Datos propiedad -->
+  <div class="col-md-5">
+    <div class="card h-100">
+      <div class="card-header-lumen"><h5><i class="fa fa-home me-2"></i>Datos de la Propiedad</h5></div>
+      <div class="card-body">
+        <table class="table table-sm mb-0">
+          <tbody>
+            {% for label, value in [
+              ('Tipo', t.tipo_propiedad),
+              ('Dirección', t.direccion),
+              ('Barrio', t.barrio),
+              ('Superficie', "%.1f m²"|format(t.metros2)),
+              ('Estado Edilicio', t.estado_edilicio|string + ' – ' + ['','Malo','Regular','Bueno','Excelente'][t.estado_edilicio]),
+              ('Ubicación', t.ubicacion|string + ' – ' + ['','Mala','Regular','Buena','Excelente'][t.ubicacion]),
+              ('Fecha', t.fecha),
+              ('Agente', t.agent_name),
+            ] %}
+            <tr>
+              <td class="text-muted fw-semibold" style="width:40%; font-size:0.85rem;">{{ label }}</td>
+              <td style="font-size:0.9rem;">{{ value or '—' }}</td>
+            </tr>
+            {% endfor %}
+            {% if t.link_propiedad %}
+            <tr>
+              <td class="text-muted fw-semibold" style="font-size:0.85rem;">Link</td>
+              <td><a href="{{ t.link_propiedad }}" target="_blank" style="font-size:0.85rem;">Ver publicación</a></td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+        {% if t.notas %}
+        <hr>
+        <div class="text-muted fw-semibold mb-1" style="font-size:0.85rem;">Notas</div>
+        <div style="font-size:0.9rem;">{{ t.notas }}</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Comparables -->
+  <div class="col-md-7">
+    <div class="card h-100">
+      <div class="card-header-lumen"><h5><i class="fa fa-table me-2"></i>Comparables</h5></div>
+      <div class="card-body p-0">
+        {% if t.comparables %}
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead>
+              <tr>
+                <th>#</th><th>m²</th><th>Precio</th><th>Estado</th><th>Ubicación</th><th>USD/m² Aj.</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in t.resultado.comparables %}
+              <tr>
+                <td>{{ c.numero }}</td>
+                <td>{{ "%.0f"|format(c.metros2) }}</td>
+                <td>USD {{ "{:,.0f}".format(c.precio).replace(",",".") }}</td>
+                <td>{{ c.estado_edilicio }}–{{ c.estado_label }}</td>
+                <td>{{ c.ubicacion }}–{{ c.ubicacion_label }}</td>
+                <td><strong style="color:#1A3C6E;">USD {{ "{:,.0f}".format(c.usd_m2_ajustado).replace(",",".") }}</strong></td>
+              </tr>
+              {% endfor %}
+              <tr style="background:#E8EEF7;">
+                <td colspan="5" class="fw-bold text-end" style="color:#1A3C6E;">Promedio USD/m²</td>
+                <td><strong style="color:#1A3C6E;">USD {{ "{:,.0f}".format(t.resultado.promedio_usd_m2).replace(",",".") }}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="p-3 text-muted">Sin comparables registrados.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Agentes · LUMEN{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0" style="color:#1A3C6E; font-weight:700;"><i class="fa fa-users me-2"></i>Agentes</h4>
+  <a href="{{ url_for('admin_nuevo_usuario') }}" class="btn btn-lumen">
+    <i class="fa fa-plus me-2"></i>Nuevo Agente
+  </a>
+</div>
+<div class="card">
+  <div class="card-body p-0">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr><th>Nombre</th><th>Usuario</th><th>Email</th><th>Teléfono</th><th class="text-center">Acciones</th></tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>{{ u.full_name }}</td>
+          <td><code>{{ u.username }}</code></td>
+          <td>{{ u.email or '—' }}</td>
+          <td>{{ u.phone or '—' }}</td>
+          <td class="text-center">
+            {% if u.username != 'admin' %}
+            <form method="POST" action="{{ url_for('admin_eliminar_usuario', uid=u.id) }}"
+                  style="display:inline;" onsubmit="return confirm('¿Eliminar a {{ u.full_name }}?')">
+              <button class="btn btn-sm btn-outline-danger"><i class="fa fa-trash"></i></button>
+            </form>
+            {% else %}
+            <span class="badge bg-secondary">Admin</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

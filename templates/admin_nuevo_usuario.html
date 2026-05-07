@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Nuevo Agente · LUMEN{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-5">
+    <div class="d-flex align-items-center mb-4">
+      <a href="{{ url_for('admin_usuarios') }}" class="btn btn-sm btn-outline-secondary me-3"><i class="fa fa-arrow-left"></i></a>
+      <h4 class="mb-0" style="color:#1A3C6E; font-weight:700;">Nuevo Agente</h4>
+    </div>
+    <div class="card">
+      <div class="card-header-lumen"><h5>Datos del Agente</h5></div>
+      <div class="card-body">
+        <form method="POST">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Nombre Completo</label>
+            <input type="text" name="full_name" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Usuario <small class="text-muted">(para iniciar sesión)</small></label>
+            <input type="text" name="username" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Contraseña</label>
+            <input type="password" name="password" class="form-control" required minlength="6">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Email</label>
+            <input type="email" name="email" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Teléfono</label>
+            <input type="text" name="phone" class="form-control">
+          </div>
+          <button type="submit" class="btn btn-lumen w-100">Crear Agente</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

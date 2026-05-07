@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · LUMEN{% endblock %}
+{% block extra_css %}
+<style>
+  .section-header { background: #1A3C6E; color: white; padding: 10px 16px; border-radius: 8px 8px 0 0; font-weight: 600; font-size: 0.95rem; }
+  .section-body { background: white; border-radius: 0 0 8px 8px; padding: 20px; margin-bottom: 20px; }
+  .comp-row { background: #F8FAFC; border: 1px solid #E0E9F5; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+  .comp-row:hover { background: #EEF3FB; }
+  .result-box { background: #1A3C6E; color: white; border-radius: 12px; padding: 24px; text-align: center; }
+  .result-main { font-size: 2.2rem; font-weight: 800; color: #C8A84B; }
+  .result-sub { font-size: 1.1rem; color: rgba(255,255,255,0.8); }
+  select.form-select, input.form-control { border-color: #D0D9E8; }
+  select.form-select:focus, input.form-control:focus { border-color: #1A3C6E; box-shadow: 0 0 0 3px rgba(26,60,110,0.1); }
+  .btn-add-comp { border: 2px dashed #2563AB; color: #2563AB; background: #F0F4FA; border-radius: 8px; padding: 10px; width: 100%; font-weight: 600; }
+  .btn-add-comp:hover { background: #2563AB; color: white; border-color: #2563AB; }
+</style>
+{% endblock %}
+{% block content %}
+
+<div class="d-flex align-items-center mb-4">
+  <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-outline-secondary me-3">
+    <i class="fa fa-arrow-left"></i>
+  </a>
+  <h4 class="mb-0" style="color:#1A3C6E; font-weight:700;">{{ title }}</h4>
+</div>
+
+<form method="POST" id="formTasacion">
+
+  <!-- Datos de la propiedad -->
+  <div class="section-header"><i class="fa fa-home me-2"></i>Datos de la Propiedad</div>
+  <div class="section-body">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Tipo de Propiedad</label>
+        <input type="text" name="tipo_propiedad" class="form-control" placeholder="Ej: Casa, Departamento..." value="{{ data.tipo_propiedad if data else '' }}">
+      </div>
+      <div class="col-md-5">
+        <label class="form-label fw-semibold">Dirección</label>
+        <input type="text" name="direccion" class="form-control" placeholder="Calle y número" value="{{ data.direccion if data else '' }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-semibold">Barrio / Zona</label>
+        <input type="text" name="barrio" class="form-control" placeholder="Barrio" value="{{ data.barrio if data else '' }}">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Link de Publicación</label>
+        <input type="url" name="link_propiedad" class="form-control" placeholder="https://..." value="{{ data.link_propiedad if data else '' }}">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label fw-semibold">Fecha</label>
+        <input type="text" name="fecha" class="form-control" value="{{ data.fecha if data else now }}">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label fw-semibold">Superficie (m²) <span class="text-danger">*</span></label>
+        <input type="number" name="metros2" class="form-control" step="0.1" min="1" required value="{{ data.metros2 if data else '' }}">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label fw-semibold">Estado Edilicio <span class="text-danger">*</span></label>
+        <select name="estado_edilicio" class="form-select" required>
+          {% for k, v in [('1','Malo'),('2','Regular'),('3','Bueno'),('4','Excelente')] %}
+          <option value="{{ k }}" {{ 'selected' if data and data.estado_edilicio|string == k else '' }}>{{ k }} – {{ v }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label fw-semibold">Ubicación <span class="text-danger">*</span></label>
+        <select name="ubicacion" class="form-select" required>
+          {% for k, v in [('1','Mala'),('2','Regular'),('3','Buena'),('4','Excelente')] %}
+          <option value="{{ k }}" {{ 'selected' if data and data.ubicacion|string == k else '' }}>{{ k }} – {{ v }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Comparables -->
+  <div class="section-header"><i class="fa fa-search-dollar me-2"></i>Propiedades Comparables <small class="fw-normal">(mínimo 4)</small></div>
+  <div class="section-body">
+    <div class="row fw-semibold mb-2 px-1" style="font-size:0.85rem; color:#7F8C8D;">
+      <div class="col-md-4">Link de publicación</div>
+      <div class="col-md-2">m²</div>
+      <div class="col-md-2">Precio USD</div>
+      <div class="col-md-2">Estado Edilicio</div>
+      <div class="col-md-2">Ubicación</div>
+    </div>
+    <div id="comparables-container">
+      {% set comps = data.comparables if data and data.comparables else [] %}
+      {% set n = [comps|length, 4]|max %}
+      {% for i in range(n) %}
+      {% set c = comps[i] if i < comps|length else {} %}
+      <div class="comp-row row g-2 align-items-center" data-index="{{ i }}">
+        <div class="col-md-4">
+          <input type="url" name="comp_link_{{ i }}" class="form-control form-control-sm" placeholder="https://..." value="{{ c.link if c else '' }}">
+        </div>
+        <div class="col-md-2">
+          <input type="number" name="comp_m2_{{ i }}" class="form-control form-control-sm" step="0.1" min="1" required placeholder="m²" value="{{ c.metros2 if c else '' }}">
+        </div>
+        <div class="col-md-2">
+          <input type="number" name="comp_precio_{{ i }}" class="form-control form-control-sm" step="1000" min="1" required placeholder="USD" value="{{ c.precio if c else '' }}">
+        </div>
+        <div class="col-md-2">
+          <select name="comp_estado_{{ i }}" class="form-select form-select-sm">
+            {% for k, v in [('1','Malo'),('2','Regular'),('3','Bueno'),('4','Excelente')] %}
+            <option value="{{ k }}" {{ 'selected' if c and c.estado_edilicio|string == k else '' }}>{{ k }}–{{ v }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-1">
+          <select name="comp_ubicacion_{{ i }}" class="form-select form-select-sm">
+            {% for k, v in [('1','Mala'),('2','Regular'),('3','Buena'),('4','Excelente')] %}
+            <option value="{{ k }}" {{ 'selected' if c and c.ubicacion|string == k else '' }}>{{ k }}–{{ v }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-1 text-end">
+          {% if i >= 4 %}
+          <button type="button" class="btn btn-sm btn-outline-danger btn-remove-comp" title="Eliminar">
+            <i class="fa fa-times"></i>
+          </button>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <button type="button" class="btn-add-comp mt-3" id="btnAddComp">
+      <i class="fa fa-plus me-2"></i>Agregar Comparable
+    </button>
+  </div>
+
+  <!-- Notas -->
+  <div class="section-header"><i class="fa fa-sticky-note me-2"></i>Notas y Observaciones</div>
+  <div class="section-body">
+    <textarea name="notas" class="form-control" rows="3" placeholder="Observaciones adicionales...">{{ data.notas if data else '' }}</textarea>
+  </div>
+
+  <!-- Resultado preview -->
+  <div id="resultado-preview" style="display:none;" class="mb-4">
+    <div class="result-box">
+      <div class="text-white-50 mb-1" style="font-size:0.85rem;">VALOR ESTIMADO</div>
+      <div class="result-main" id="res-medio">—</div>
+      <hr style="border-color:rgba(255,255,255,0.2);">
+      <div class="row">
+        <div class="col"><div class="result-sub">Mínimo</div><div id="res-min" class="fw-bold">—</div></div>
+        <div class="col"><div class="result-sub">Máximo</div><div id="res-max" class="fw-bold">—</div></div>
+        <div class="col"><div class="result-sub">USD/m²</div><div id="res-m2" class="fw-bold">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Botones -->
+  <div class="d-flex gap-2 justify-content-end">
+    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">Cancelar</a>
+    <button type="button" class="btn btn-outline-primary" id="btnCalcular">
+      <i class="fa fa-calculator me-2"></i>Calcular
+    </button>
+    <button type="submit" class="btn btn-lumen">
+      <i class="fa fa-save me-2"></i>Guardar Tasación
+    </button>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const now = new Date();
+document.querySelector('[name=fecha]').value ||
+  (document.querySelector('[name=fecha]').value =
+    String(now.getDate()).padStart(2,'0')+'/'+String(now.getMonth()+1).padStart(2,'0')+'/'+now.getFullYear());
+
+let compIndex = document.querySelectorAll('.comp-row').length;
+
+document.getElementById('btnAddComp').addEventListener('click', () => {
+  const i = compIndex++;
+  const div = document.createElement('div');
+  div.className = 'comp-row row g-2 align-items-center';
+  div.dataset.index = i;
+  div.innerHTML = `
+    <div class="col-md-4"><input type="url" name="comp_link_${i}" class="form-control form-control-sm" placeholder="https://..."></div>
+    <div class="col-md-2"><input type="number" name="comp_m2_${i}" class="form-control form-control-sm" step="0.1" min="1" required placeholder="m²"></div>
+    <div class="col-md-2"><input type="number" name="comp_precio_${i}" class="form-control form-control-sm" step="1000" min="1" required placeholder="USD"></div>
+    <div class="col-md-2"><select name="comp_estado_${i}" class="form-select form-select-sm">
+      <option value="1">1–Malo</option><option value="2" selected>2–Regular</option>
+      <option value="3">3–Bueno</option><option value="4">4–Excelente</option>
+    </select></div>
+    <div class="col-md-1"><select name="comp_ubicacion_${i}" class="form-select form-select-sm">
+      <option value="1">1–Mala</option><option value="2" selected>2–Regular</option>
+      <option value="3">3–Buena</option><option value="4">4–Excelente</option>
+    </select></div>
+    <div class="col-md-1 text-end">
+      <button type="button" class="btn btn-sm btn-outline-danger btn-remove-comp"><i class="fa fa-times"></i></button>
+    </div>`;
+  document.getElementById('comparables-container').appendChild(div);
+  div.querySelector('.btn-remove-comp').addEventListener('click', () => div.remove());
+});
+
+document.querySelectorAll('.btn-remove-comp').forEach(btn => {
+  btn.addEventListener('click', () => btn.closest('.comp-row').remove());
+});
+
+function fmtUSD(v) {
+  return 'USD ' + Math.round(v).toLocaleString('es-UY').replace(/,/g,'.');
+}
+
+document.getElementById('btnCalcular').addEventListener('click', async () => {
+  const metros2 = parseFloat(document.querySelector('[name=metros2]').value);
+  const estado = parseInt(document.querySelector('[name=estado_edilicio]').value);
+  const ubicacion = parseInt(document.querySelector('[name=ubicacion]').value);
+  const rows = document.querySelectorAll('.comp-row');
+  const comparables = [];
+  rows.forEach(row => {
+    const i = row.dataset.index;
+    const m2 = parseFloat(row.querySelector(`[name^=comp_m2]`)?.value);
+    const precio = parseFloat(row.querySelector(`[name^=comp_precio]`)?.value);
+    const est = parseInt(row.querySelector(`[name^=comp_estado]`)?.value);
+    const ubic = parseInt(row.querySelector(`[name^=comp_ubicacion]`)?.value);
+    if (m2 > 0 && precio > 0) comparables.push({metros2:m2, precio, estado_edilicio:est, ubicacion:ubic});
+  });
+  if (!metros2 || comparables.length < 4) {
+    alert('Completá los m² y al menos 4 comparables con precio y superficie.');
+    return;
+  }
+  const res = await fetch('/api/calcular', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({metros2, estado_edilicio:estado, ubicacion, comparables})
+  });
+  const data = await res.json();
+  document.getElementById('res-medio').textContent = fmtUSD(data.valor_medio);
+  document.getElementById('res-min').textContent = fmtUSD(data.valor_minimo);
+  document.getElementById('res-max').textContent = fmtUSD(data.valor_maximo);
+  document.getElementById('res-m2').textContent = fmtUSD(data.usd_m2_ajustado_final)+'/m²';
+  document.getElementById('resultado-preview').style.display = 'block';
+  document.getElementById('resultado-preview').scrollIntoView({behavior:'smooth'});
+});
+</script>
+{% endblock %}
